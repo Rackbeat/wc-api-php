@@ -370,7 +370,7 @@ class HttpClient
             $body = substr($body, 3);
         }
 
-        $parsedResponse = $this->array_to_object(\json_decode($body, true));
+        $parsedResponse = $this->fixInvalidKeys(\json_decode($body, true));
 
         // Test if return a valid JSON.
         if (JSON_ERROR_NONE !== json_last_error()) {
@@ -388,18 +388,28 @@ class HttpClient
         return $parsedResponse;
     }
 
-    private function array_to_object($data)
+    private function fixInvalidKeys($data)
     {
-        if (is_array($data) || is_object($data))
-        {
+        if ( is_object($data)) {
             $result= new \stdClass();
-            foreach ($data as $key => $value)
-            {
+            
+            foreach ($data as $key => $value) {
                 $key = str_replace("\0*\0", '', $key);
-                $result->$key = $this->array_to_object($value);
+                $result->$key = $this->fixInvalidKeys($value);
             }
+            
+            return $result;
+        } elseif( is_array($data) ) {
+            $result = [];
+            
+            foreach ( $data as $key => $value ) {
+                $key = str_replace("\0*\0", '', $key);
+                $result[$key] = $this->fixInvalidKeys($value);
+            }
+            
             return $result;
         }
+        
         return $data;
     }
 
