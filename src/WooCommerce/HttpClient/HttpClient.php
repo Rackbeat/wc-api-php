@@ -374,9 +374,11 @@ class HttpClient
         $body = str_replace( '\0*\0', '', $body );
         $body = str_replace( '\0*', '', $body );
         $body = str_replace( '\0', '', $body );
+        $body = str_replace( '\u0000', '', $body );
         $body = str_replace( "\0*\0", '', $body );
         $body = str_replace( "\0*", '', $body );
         $body = str_replace( "\0", '', $body );
+        $body = str_replace( "\u0000", '', $body );
 
         $parsedResponse = \json_decode( $body );
 
