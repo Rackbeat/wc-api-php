@@ -366,24 +366,38 @@ class HttpClient
         $body = $this->response->getBody();
 
         // Look for UTF-8 BOM and remove.
-        if (0 === strpos(bin2hex(substr($body, 0, 4)), 'efbbbf')) {
-            $body = substr($body, 3);
+        if ( 0 === strpos( bin2hex( substr( $body, 0, 4 ) ), 'efbbbf' ) ) {
+            $body = substr( $body, 3 );
         }
 
-        $parsedResponse = $this->fixInvalidKeys(\json_decode($body, true));
+        // Remove invalid characters
+        $body = str_replace( '\0*\0', '', $body );
+        $body = str_replace( '\0*', '', $body );
+        $body = str_replace( '\0', '', $body );
+        $body = str_replace( "\0*\0", '', $body );
+        $body = str_replace( "\0*", '', $body );
+        $body = str_replace( "\0", '', $body );
+
+        $parsedResponse = \json_decode( $body );
 
         // Test if return a valid JSON.
-        if (JSON_ERROR_NONE !== json_last_error()) {
-            $message = function_exists('json_last_error_msg') ? json_last_error_msg() : 'Invalid JSON returned';
-            throw new HttpClientException(
-                sprintf('JSON ERROR: %s', $message),
-                $this->response->getCode(),
-                $this->request,
-                $this->response
-            );
+        if ( JSON_ERROR_NONE !== json_last_error() ) {
+            // Retry with fallback logic
+            $parsedResponse = $this->fixInvalidKeys( \json_decode( $body, true ) );
+
+            // Test if return a valid JSON.
+            if ( JSON_ERROR_NONE !== json_last_error() ) {
+                $message = function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : 'Invalid JSON returned';
+                throw new HttpClientException(
+                    sprintf( 'JSON ERROR: %s', $message ),
+                    $this->response->getCode(),
+                    $this->request,
+                    $this->response
+                );
+            }
         }
 
-        $this->lookForErrors($parsedResponse);
+        $this->lookForErrors( $parsedResponse );
 
         return $parsedResponse;
     }
